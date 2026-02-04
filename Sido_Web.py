@@ -83,7 +83,8 @@ if menu == "🔍 개별 종목 즉석 퀀트":
                     rsi_series = calculate_rsi(hist['Close']); curr_rsi = rsi_series.iloc[-1]
 
                     # 3. 플롯 범위 제한 (최근 6개월)
-                    six_months_ago = hist.index[-1] - pd.Timedelta(days=180)
+                    six_months_ago = (hist.index[-1] - pd.Timedelta(days=180)).replace(tzinfo=None)
+                    hist.index = hist.index.tz_localize(None) # 이 줄을 추가하면 확실합니다.
                     hist_plot = hist.loc[six_months_ago:]
                     ma_plot = ma200.loc[six_months_ago:]
                     rsi_plot = rsi_series.loc[six_months_ago:]
@@ -224,7 +225,7 @@ elif menu == "⚖️ 다중 종목 비교 분석":
         if tickers_input:
             with st.spinner('최근 6개월 수익률 분석 중...'):
                 ticker_list = [t.strip() for t in tickers_input.split(',')]
-                start_6m = datetime.now() - timedelta(days=180) # datetime 에러 해결 지점
+                start_6m = datetime.now() - pd.Timedelta(days=180) # datetime 에러 해결 지점
                 comparison_df = pd.DataFrame()
                 
                 for t in ticker_list:
