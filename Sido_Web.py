@@ -82,12 +82,15 @@ if menu == "🔍 개별 종목 즉석 퀀트":
                     ma200 = hist['Close'].rolling(window=200).mean() if len(hist) >= 200 else hist['Close'].expanding().mean()
                     rsi_series = calculate_rsi(hist['Close']); curr_rsi = rsi_series.iloc[-1]
 
-                    # 3. 플롯 범위 제한 (최근 6개월)
-                    six_months_ago = (hist.index[-1] - pd.Timedelta(days=180)).replace(tzinfo=None)
-                    hist.index = hist.index.tz_localize(None) # 이 줄을 추가하면 확실합니다.
+                    # 3. 플롯 범위 제한 (최근 6개월) 및 시간대 제거
+                    # (1) 주가 데이터 시간대 제거
+                    hist.index = hist.index.tz_localize(None) 
+                    six_months_ago = hist.index[-1] - pd.Timedelta(days=180)
+                    
                     hist_plot = hist.loc[six_months_ago:]
                     ma_plot = ma200.loc[six_months_ago:]
                     rsi_plot = rsi_series.loc[six_months_ago:]
+                    
                     idx_plot = idx_data.loc[six_months_ago:] if not idx_data.empty else pd.DataFrame()
 
                     # 시그널 화살표
@@ -120,37 +123,26 @@ if menu == "🔍 개별 종목 즉석 퀀트":
                     # (3) 인덱스 지수 - 금색(#FFD700)으로 변경 (가시성 확보)
                     #if not idx_plot.empty:
                         # 6개월 시작점 기준으로 수익률 동기화
-                    #    idx_scaled = (idx_plot['Close'] / idx_plot['Close'].iloc[0]) * hist_plot['Close'].iloc[0]
-                    #    fig.add_trace(go.Scatter(x=idx_plot.index, y=idx_scaled, name=f'Index({idx_name})', 
-                    #                           line=dict(color="#F7D514", width=2, dash='dash')), row=1, col=1)
-                    # --- [인덱스 지수 출력부 수정] ---
-                    # --- [인덱스 지수 출력부 확실한 수정] ---
-                    #if not idx_data.empty:
-                    #    idx_p = idx_data['Close'].loc[six_months_ago:] # ['Close']를 명시해줘야 안전합니다.
-                    #    h_p = hist['Close'].loc[six_months_ago:]
-    
-                        # 수익률 동기화: 6개월 전 첫 값을 기준으로 현재 주가 스케일에 맞춤
-                    #    idx_scaled = (idx_p / idx_p.iloc[0]) * h_p.iloc[0]
-    
-                    #    fig.add_trace(go.Scatter(
-                    #        x=idx_p.index, 
-                    #        y=idx_scaled, 
-                    #        name=f'Index({idx_name})', 
-                    #       line=dict(color='#FFFF00', width=2, dash='dash') # 밝은 노랑
-                    #    ), row=1, col=1)
                     # --- [수정] 인덱스 지수 출력부 ---
                     if not idx_data.empty:
+                        # 1. 시간대 제거 및 슬라이싱
+                        idx_data.index = idx_data.index.tz_localize(None)
+                        
+                        # 2. 스케일링 계산을 위한 Series 추출
                         idx_p = idx_data['Close'].loc[six_months_ago:].squeeze() 
                         h_p = hist['Close'].loc[six_months_ago:].squeeze()
-   
-                        idx_scaled = (idx_p / idx_p.iloc[0]) * h_p.iloc[0]
-   
-                        fig.add_trace(go.Scatter(
-                            x=idx_p.index,
-                            y=idx_scaled,
-                            name=f'Index({idx_name})',
-                           line=dict(color='#FFFF00', width=2, dash='dash')
-                        ), row=1, col=1)
+                        
+                        if not idx_p.empty and not h_p.empty:
+                            # 3. 상대 수익률 동기화 계산
+                            idx_scaled = (idx_p / idx_p.iloc[0]) * h_p.iloc[0]
+       
+                            # 4. 차트에 추가 (이 부분이 if문 밖(else 위)에 있어야 합니다)
+                            fig.add_trace(go.Scatter(
+                                x=idx_p.index,
+                                y=idx_scaled,
+                                name=f'Index({idx_name})',
+                                line=dict(color='#FFFF00', width=2, dash='dash')
+                            ), row=1, col=1)
                     
                     
 
