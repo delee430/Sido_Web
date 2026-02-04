@@ -75,18 +75,23 @@ if menu == "🔍 개별 종목 즉석 퀀트":
 
 
                 if not hist.empty:
-                    curr_p = manual_p if manual_p > 0 else hist['Close'].iloc[-1]
-                    derived_target = curr_p * 1.10 # 역산 적정주가 가이드
-                    
-                    # 200일선 예외처리 및 RSI
-                    ma200 = hist['Close'].rolling(window=200).mean() if len(hist) >= 200 else hist['Close'].expanding().mean()
-                    rsi_series = calculate_rsi(hist['Close']); curr_rsi = rsi_series.iloc[-1]
+                    # 1. 모든 데이터의 시간대 제거 (에러의 근본 원인 해결)
+                    hist.index = hist.index.tz_localize(None)
+                    if not idx_data.empty:
+                        idx_data.index = idx_data.index.tz_localize(None)
 
-                    # 3. 플롯 범위 제한 (최근 6개월) 및 시간대 제거
-                    # (1) 주가 데이터 시간대 제거
-                    hist.index = hist.index.tz_localize(None) 
+                    # 2. 지표 계산 (시간대 제거된 데이터를 바탕으로 계산)
+                    curr_p = manual_p if manual_p > 0 else hist['Close'].iloc[-1]
+                    derived_target = curr_p * 1.10
+                    
+                    ma200 = hist['Close'].rolling(window=200).mean() if len(hist) >= 200 else hist['Close'].expanding().mean()
+                    rsi_series = calculate_rsi(hist['Close'])
+                    curr_rsi = rsi_series.iloc[-1]
+
+                    # 3. 플롯 범위 제한 (최근 6개월)
                     six_months_ago = hist.index[-1] - pd.Timedelta(days=180)
                     
+                    # 이제 모든 데이터가 Naive 상태라 에러 없이 슬라이싱 됩니다.
                     hist_plot = hist.loc[six_months_ago:]
                     ma_plot = ma200.loc[six_months_ago:]
                     rsi_plot = rsi_series.loc[six_months_ago:]
